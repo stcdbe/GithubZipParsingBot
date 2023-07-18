@@ -15,6 +15,7 @@ services:
 
   bot:
     build: .
+    command: sh -c "python3 run.py"
     restart: always
     env_file: ./.env
     depends_on:

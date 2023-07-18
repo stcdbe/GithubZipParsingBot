@@ -2,9 +2,10 @@ FROM python:3.10
 
 WORKDIR /bot
 
-COPY requirements.txt requirements.txt
-RUN pip3 install --upgrade setuptools && \
-    pip3 install -r requirements.txt
-COPY . .
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-CMD ["python", "run.py"]
+COPY . . 
+RUN pip install --no-cache-dir --upgrade setuptools && \
+    pip3 install --no-cache-dir --upgrade setuptools && \
+    pip3 install --no-cache-dir -r requirements.txt
