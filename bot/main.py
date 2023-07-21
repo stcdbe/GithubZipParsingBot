@@ -5,7 +5,7 @@ from bot.handlers.handlers import startmes, sendlogin, sendrepname, RepoNameStat
 from bot.config import APITOKEN, REDISDB, REDISPORT, REDISHOST
 
 
-async def main() -> None:
+def main() -> None:
 
     logging.basicConfig(level=logging.INFO)
 
