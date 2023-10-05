@@ -1,30 +1,30 @@
 from aiofile import async_open
-from aiogram import types
+from aiogram.types import Message, CallbackQuery
 from aiogram.dispatcher import FSMContext
-from aiogram.types import CallbackQuery
+
 from bot.keyboards.keyboards import checkkb
 from bot.requests.requests import geturl, getgitzip, removefile
 from bot.statesgroup.statesgroup import RepoNameStates
 
 
-async def startmes(message: types.Message) -> None:
+async def startmes(message: Message) -> None:
     await message.answer(text='Hi\nI\'m bot which can get Github repository in ZIP format.'
                               '\nFor finding repository click /search ')
 
 
-async def sendlogin(message: types.Message) -> None:
+async def sendlogin(message: Message) -> None:
     await message.answer(text='Send Github repository owner login.')
     await RepoNameStates.login.set()
 
 
-async def sendrepname(message: types.Message, state: FSMContext) -> None:
+async def sendrepname(message: Message, state: FSMContext) -> None:
     async with state.proxy() as data:
         data['login'] = message.text
     await RepoNameStates.next()
     await message.answer(text='Send repository title.')
 
 
-async def checkurl(message: types.Message, state: FSMContext) -> None:
+async def checkurl(message: Message, state: FSMContext) -> None:
     async with state.proxy() as data:
         data['reponame'] = message.text
     await message.answer(text=await geturl(state))
@@ -60,5 +60,5 @@ async def wrongurl(callback: CallbackQuery, state: FSMContext) -> None:
     await state.finish()
 
 
-async def echo(message: types.Message) -> None:
+async def echo(message: Message) -> None:
     await message.answer(text='Unknown command.')

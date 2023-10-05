@@ -2,7 +2,7 @@
 ___
 ### Description
 
-Simple and fully asynchronous Telegram bot that can download GitHub repositories and return as .zip files.
+Simple and fully asynchronous Telegram bot that can download GitHub repository and return as .zip archive.
 ___
 ### Getting Started
 #### Running on Local Machine

@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3.9'
 
 services:
   redis:
@@ -7,8 +7,10 @@ services:
       - redis-server
     env_file:
       - ./.env
+    ports:
+      - ${REDISPORT}:${REDISPORT}
     expose:
-      - "6379:6379"
+      - ${REDISPORT}
     restart: always
     volumes:
       - redis_data:/data
