@@ -1,64 +1,79 @@
-from aiofile import async_open
-from aiogram.types import Message, CallbackQuery
-from aiogram.dispatcher import FSMContext
+import logging
 
-from bot.keyboards.keyboards import checkkb
-from bot.requests.requests import geturl, getgitzip, removefile
-from bot.statesgroup.statesgroup import RepoNameStates
+from aiogram import F, Router
+from aiogram.types import Message, CallbackQuery, FSInputFile, ErrorEvent
+from aiogram.filters import CommandStart, Command
+from aiogram.fsm.context import FSMContext
 
-
-async def startmes(message: Message) -> None:
-    await message.answer(text='Hi\nI\'m bot which can get Github repository in ZIP format.'
-                              '\nFor finding repository click /search ')
-
-
-async def sendlogin(message: Message) -> None:
-    await message.answer(text='Send Github repository owner login.')
-    await RepoNameStates.login.set()
-
-
-async def sendrepname(message: Message, state: FSMContext) -> None:
-    async with state.proxy() as data:
-        data['login'] = message.text
-    await RepoNameStates.next()
-    await message.answer(text='Send repository title.')
+from bot.keyboards.keyboards import get_url_confirm_kb
+from bot.requests.requests import del_repo, render_repo_url, download_repo
+from bot.statesgroup.statesgroup import RepoNameState
+from bot.handlers.constants import (START_MES,
+                                    GET_USERNAME,
+                                    GET_REPO_NAME,
+                                    DOWNLOAD_REPO_Q,
+                                    DOWNLOAD_ERROR,
+                                    DOWNLOAD_SUCCESS,
+                                    TRY_DOWNLOAD_AGAIN)
 
 
-async def checkurl(message: Message, state: FSMContext) -> None:
-    async with state.proxy() as data:
-        data['reponame'] = message.text
-    await message.answer(text=await geturl(state))
-    await getgitzip(state)
-    await message.answer(text='Do you want to download this repository?', reply_markup=await checkkb())
-    await RepoNameStates.next()
+main_router = Router(name=__name__)
 
 
-async def righturl(callback: CallbackQuery, state: FSMContext) -> None:
+@main_router.message(CommandStart())
+async def send_start_mes(message: Message) -> None:
+    await message.answer(text=START_MES)
+
+
+@main_router.message(Command('search'))
+async def get_username(message: Message, state: FSMContext) -> None:
+    await state.set_state(RepoNameState.username)
+    await message.answer(text=GET_USERNAME)
+
+
+@main_router.message(RepoNameState.username)
+async def get_repo_name(message: Message, state: FSMContext) -> None:
+    await state.update_data(username=message.text)
+    await state.set_state(RepoNameState.repo_name)
+    await message.answer(text=GET_REPO_NAME)
+
+
+@main_router.message(RepoNameState.repo_name)
+async def check_repo_url(message: Message, state: FSMContext) -> None:
+    await state.update_data(repo_name=message.text)
+    url_data = await state.get_data()
+    await message.answer(text=await render_repo_url(url_data=url_data))
+    await message.answer(text=DOWNLOAD_REPO_Q, reply_markup=await get_url_confirm_kb())
+
+
+@main_router.callback_query(F.data.startswith('right'))
+async def handle_right_url(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
     await callback.message.delete()
-    gitzip = await getgitzip(state)
-    if not gitzip:
-        await callback.message.answer(text='Download error.'
-                                           '\nCheck correctness of the selected repository'
-                                           ' and try again. \n/search')
+
+    url_data = await state.get_data()
+    await state.clear()
+    zip_repo_name = await download_repo(url_data=url_data)
+
+    if zip_repo_name:
+        repo = FSInputFile(zip_repo_name)
+        await callback.message.answer_document(document=repo)
+        await del_repo(repo_name=zip_repo_name)
+        await callback.message.answer(text=DOWNLOAD_SUCCESS)
+
     else:
-        async with state.proxy() as data:
-            reponame = data['reponame']
-            async with async_open(f'{reponame}.zip', 'rb') as file:
-                await callback.message.answer_document(document=file,
-                                                        caption=f'{reponame}.zip',
-                                                        disable_content_type_detection=True)
-            await removefile(name=reponame)
-            await callback.message.answer(text='To get one more repository click /search')
-    await state.finish()
+        await callback.message.answer(text=DOWNLOAD_ERROR)
 
 
-async def wrongurl(callback: CallbackQuery, state: FSMContext) -> None:
+@main_router.callback_query(F.data.startswith('wrong'))
+async def handle_wrong_url(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
     await callback.message.delete()
-    await callback.message.answer(text='If you want to try again just click /search')
-    await state.finish()
+    await state.clear()
+    await callback.message.answer(text=TRY_DOWNLOAD_AGAIN)
 
 
-async def echo(message: Message) -> None:
-    await message.answer(text='Unknown command.')
+@main_router.errors()
+async def catch_error(event: ErrorEvent, state: FSMContext) -> None:
+    await state.clear()
+    logging.warning('Critical error caused by %s', event.exception, exc_info=True)

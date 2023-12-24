@@ -1,29 +1,27 @@
 import logging
 
-from aiogram import executor, Dispatcher, Bot
-from aiogram.contrib.fsm_storage.redis import RedisStorage2
+from aiogram import Dispatcher, Bot
+from aiogram.methods import DeleteWebhook
+from aiogram.fsm.storage.redis import RedisStorage
+from redis.asyncio import Redis
 
-from bot.handlers.handlers import (startmes, sendlogin, sendrepname, RepoNameStates,
-                                  checkurl, righturl, wrongurl, echo)
-from bot.config import APITOKEN, REDISDB, REDISPORT, REDISHOST
+from bot.config import settings, REDIS_URL
+from bot.handlers.handlers import main_router
 
 
-logging.basicConfig(level=logging.WARNING)
+async def main() -> None:
+    logging.basicConfig(level=logging.INFO)
 
-storage = RedisStorage2(host=REDISHOST,
-                        port=REDISPORT,
-                        db=REDISDB,
-                        pool_size=10,
-                        prefix='fsm')
-bot = Bot(APITOKEN)
-dp = Dispatcher(bot, storage=storage)
+    aioredis = Redis.from_url(url=REDIS_URL)
+    storage = RedisStorage(redis=aioredis)
+    bot = Bot(token=settings.BOT_API_TOKEN)
+    dp = Dispatcher(storage=storage)
 
-dp.register_message_handler(startmes, commands=['start'])
-dp.register_message_handler(sendlogin, commands=['search'])
-dp.register_message_handler(sendrepname, state=RepoNameStates.login)
-dp.register_message_handler(checkurl, state=RepoNameStates.reponame)
-dp.register_callback_query_handler(righturl, lambda callback: callback.data == 'right')
-dp.register_callback_query_handler(wrongurl, lambda callback: callback.data == 'wrong')
-dp.register_message_handler(echo)
+    await bot(DeleteWebhook(drop_pending_updates=True))
 
-executor.start_polling(dispatcher=dp, skip_updates=True)
+    dp.include_router(main_router)
+
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await bot.session.close()

@@ -1,6 +1,6 @@
-from aiogram.dispatcher.filters.state import StatesGroup, State
+from aiogram.fsm.state import StatesGroup, State
 
 
-class RepoNameStates(StatesGroup):
-    login = State()
-    reponame = State()
+class RepoNameState(StatesGroup):
+    username = State()
+    repo_name = State()

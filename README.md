@@ -8,7 +8,7 @@ ___
 #### Running on Local Machine
 + install dependencies using PIP
 ````
-pip3 install -r requirements.txt 
+pip install -r requirements.txt 
 ````
 + configure environment variables in `.env` file
 + start bot in virtual environment
@@ -27,19 +27,16 @@ docker-compose up -d
 ````
 ____
 #### Environment variables
-| variables       | description                               |
-|:----------------|:------------------------------------------|
-| `APITOKEN`      | Telegram bot API token                    |
-| `REDISHOST`     | hostname or an IP address Redis database  |
-| `REDISPORT`     | port from Redis database                  |
-| `REDISDB`       | Redis database, 0 by default              |
-| `REDISPASSWORD` | Redis database password, empty by default |
+| variables       | description                             |
+|:----------------|:----------------------------------------|
+| `BOT_API_TOKEN` | Telegram bot API token                  |
+| `REDIS_HOST`    | hostname or an IP address Redis database|
+| `REDIS_PORT`    | port from Redis database                |
+| `REDIS_DB`      | Redis database                          |
 ____
 #### Tech Stack
-+  `aiogram`
-+ `aiofile`
 + `aiohttp`
-+ `fake-useragent`
-+ `python-dotenv`
++ `aiogram`
++ `aiofiles`
 + `redis`
 + `docker` and `docker-compose`

@@ -1,11 +1,16 @@
-import os
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from dotenv import load_dotenv
 
-load_dotenv()
+class Settings(BaseSettings):
+    BOT_API_TOKEN: str
 
-APITOKEN = str(os.getenv("APITOKEN"))
+    REDIS_HOST: str
+    REDIS_PORT: str
+    REDIS_DB: str
 
-REDISHOST = str(os.getenv('REDISHOST'))
-REDISPORT = int(os.getenv('REDISPORT'))
-REDISDB = int(os.getenv('REDISDB'))
+    model_config = SettingsConfigDict(env_file='.env', case_sensitive=True)
+
+
+settings = Settings()
+
+REDIS_URL = f'redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}/{settings.REDIS_DB}'

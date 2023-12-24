@@ -1,11 +1,11 @@
-FROM python:3.10
+FROM python:3.10.13-alpine
 
-WORKDIR /bot
+WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-COPY . . 
+COPY . .
 
 RUN pip install --no-cache-dir --upgrade setuptools && \
     pip install --no-cache-dir --upgrade pip && \

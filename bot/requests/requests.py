@@ -1,34 +1,33 @@
-import pathlib
+import logging
 
-from aiofile import async_open
-import aiohttp
-from aiogram.dispatcher import FSMContext
-
-from bot.requests.headers import getheaders
+from aiohttp import ClientSession
+import aiofiles
+from aiofiles.os import remove as aiofiles_os_remove
 
 
-async def geturl(state: FSMContext) -> str:
-    async with state.proxy() as data:
-        login = data['login']
-        reponame = data['reponame']
-        url = f'https://github.com/{login}/{reponame}/'
+async def render_repo_url(url_data: dict[str, str]) -> str:
+    username = url_data['username']
+    repo_name = url_data['repo_name']
+    url = f'https://github.com/{username}/{repo_name}/'
     return url
 
 
-async def getgitzip(state: FSMContext) -> bool:
-    async with state.proxy() as data:
-        login = data['login']
-        reponame = data['reponame']
-    async with aiohttp.ClientSession() as session:
-        url = f'https://github.com/{login}/{reponame}/zipball/master/'
-        async with session.get(url=url, headers=await getheaders()) as response:
-            if response.status == 200:
-                async with async_open(f'{reponame}.zip', 'wb') as file:
-                    await file.write(await response.read())
-                    return True
-            return False
+async def download_repo(url_data: dict[str, str]) -> str | None:
+    username = url_data['username']
+    repo_name = url_data['repo_name']
+    download_url = f'https://github.com/{username}/{repo_name}/zipball/master/'
+
+    async with ClientSession() as session:
+        async with session.get(url=download_url) as res:
+            if res.status == 200:
+                zip_repo_name = repo_name + '.zip'
+                async with aiofiles.open(zip_repo_name, 'wb') as file:
+                    await file.write(await res.read())
+                return zip_repo_name
 
 
-async def removefile(name: str) -> None:
-    path = pathlib.Path(f'./{name}.zip')
-    path.unlink()
+async def del_repo(repo_name: str) -> None:
+    try:
+        await aiofiles_os_remove(repo_name)
+    except FileNotFoundError:
+        logging.warning('Attempt to delete a non-existent file: %s', repo_name)

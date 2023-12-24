@@ -2,26 +2,31 @@ version: '3.9'
 
 services:
   redis:
-    image: redis:latest
-    command:
-      - redis-server
+    container_name: bot-redis
+    image: redis:7.2.3
     env_file:
       - ./.env
     ports:
-      - ${REDISPORT}:${REDISPORT}
+      - ${REDIS_PORT}:${REDIS_PORT}
     expose:
-      - ${REDISPORT}
+      - ${REDIS_PORT}
     restart: always
-    volumes:
-      - redis_data:/data
+    networks:
+      - custom
 
   bot:
+    container_name: bot
     build: .
     command: sh -c "python3 run.py"
     restart: always
     env_file: ./.env
     depends_on:
       - redis
+    networks:
+      - custom
 
-volumes:
-  redis_data:
+
+networks:
+
+  custom:
+    driver: bridge
